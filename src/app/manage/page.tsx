@@ -25,7 +25,7 @@ export default function ManagePage() {
     e.preventDefault(); if (!jobTitle.trim() || !jobDesc.trim()) return
     setJobLoading(true)
     try {
-      const res = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: jobTitle, description: jobDesc, departmentId: 1 }) })
+      const res = await fetch('/api/jobs', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: jobTitle, description: jobDesc }) })
       const data = await res.json(); if (!res.ok) throw new Error(data.error)
       toast.success(`"${data.title}" created`); setJobTitle(''); setJobDesc(''); setJobCount(p => (p ?? 0) + 1)
     } catch (e: any) { toast.error(e.message) } finally { setJobLoading(false) }
@@ -35,7 +35,7 @@ export default function ManagePage() {
     e.preventDefault(); if (!firstName.trim() || !lastName.trim() || !email.trim()) return
     setEmpLoading(true)
     try {
-      const res = await fetch('/api/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName, email, phone, departmentId: 1 }) })
+      const res = await fetch('/api/employees', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ firstName, lastName, email, phone }) })
       const data = await res.json(); if (!res.ok) throw new Error(data.error)
       toast.success(`${data.firstName} ${data.lastName} onboarded`); setFirstName(''); setLastName(''); setEmail(''); setPhone(''); setEmpCount(p => (p ?? 0) + 1)
     } catch (e: any) { toast.error(e.message) } finally { setEmpLoading(false) }
@@ -129,7 +129,7 @@ export default function ManagePage() {
               </div>
               <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
                 <p className="text-[10px] font-bold text-gray-400 mb-1">After onboarding</p>
-                <p className="text-xs text-gray-500 leading-relaxed">Employee will appear in the HR Dashboard for attendance tracking and performance management.</p>
+                <p className="text-xs text-gray-500 leading-relaxed">Employee will appear in the HR Dashboard for attendance tracking.</p>
               </div>
               <button type="submit" disabled={empLoading || !firstName.trim() || !lastName.trim() || !email.trim()}
                 className="w-full py-3.5 rounded-xl bg-gray-950 text-white text-sm font-black hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-lg shadow-gray-200 active:scale-[0.98] flex items-center justify-center gap-2">

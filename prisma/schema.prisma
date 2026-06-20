@@ -8,43 +8,21 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model Department {
-  id        Int        @id @default(autoincrement())
-  name      String     @unique
-  jobs      Job[]
-  employees Employee[]
-}
-
 model Job {
-  id           Int        @id @default(autoincrement())
-  title        String
-  description  String
-  departmentId Int
-  department   Department @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now())
+  id          Int      @id @default(autoincrement())
+  title       String
+  description String
+  createdAt   DateTime @default(now())
 }
 
 model Employee {
-  id              Int              @id @default(autoincrement())
-  firstName       String
-  lastName        String
-  email           String           @unique
-  phone           String?
-  departmentId    Int
-  department      Department       @relation(fields: [departmentId], references: [id])
-  performanceLogs PerformanceLog[]
-  attendanceLogs  AttendanceLog[]
-  createdAt       DateTime         @default(now())
-}
-
-model PerformanceLog {
-  id         Int      @id @default(autoincrement())
-  logDate    DateTime
-  rating     Float
-  notes      String?
-  employeeId Int
-  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
+  id             Int             @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String          @unique
+  phone          String?
+  attendanceLogs AttendanceLog[]
+  createdAt      DateTime        @default(now())
 }
 
 model AttendanceLog {

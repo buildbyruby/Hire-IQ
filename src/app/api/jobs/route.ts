@@ -15,21 +15,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { title, description, departmentId } = body
+    const { title, description } = body
 
-    if (!title || !description || !departmentId) {
+    if (!title || !description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Auto-create department if it doesn't exist
-    await prisma.department.upsert({
-      where: { id: departmentId },
-      update: {},
-      create: { id: departmentId, name: `Department ${departmentId}` }
-    })
-
     const job = await prisma.job.create({
-      data: { title, description, departmentId }
+      data: { title, description }
     })
     return NextResponse.json(job, { status: 201 })
   } catch (error) {

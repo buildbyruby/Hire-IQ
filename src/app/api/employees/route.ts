@@ -5,7 +5,6 @@ export async function GET() {
   try {
     const employees = await prisma.employee.findMany({
       include: {
-        performanceLogs: true,
         attendanceLogs: {
           orderBy: { timestamp: 'desc' },
           take: 1
@@ -22,20 +21,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { firstName, lastName, email, phone, departmentId } = body
+    const { firstName, lastName, email, phone } = body
 
-    if (!firstName || !lastName || !email || !departmentId) {
+    if (!firstName || !lastName || !email) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    await prisma.department.upsert({
-      where: { id: departmentId },
-      update: {},
-      create: { id: departmentId, name: `Department ${departmentId}` }
-    })
-
     const employee = await prisma.employee.create({
-      data: { firstName, lastName, email, phone: phone || null, departmentId }
+      data: { firstName, lastName, email, phone: phone || null }
     })
     return NextResponse.json(employee, { status: 201 })
   } catch (error: any) {
