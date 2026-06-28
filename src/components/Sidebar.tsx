@@ -8,7 +8,7 @@ import { FileSearch, Users, LayoutGrid, Home, Menu, X, Sparkles } from 'lucide-r
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/analysis', label: 'Resume Analysis', icon: FileSearch },
-  { href: '/dashboard', label: 'Candidate Directory', icon: Users },
+  { href: '/dashboard', label: 'Pipeline Directory', icon: Users },
   { href: '/manage', label: 'Manage Records', icon: LayoutGrid },
 ]
 

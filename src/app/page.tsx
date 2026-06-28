@@ -46,8 +46,8 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[
             { href: '/analysis', icon: FileSearch, title: 'Resume Analysis', description: 'AI-powered ATS scoring. Upload any PDF and match it against a job description in seconds.', tag: 'Gemini AI', color: 'text-indigo-600', bg: 'bg-indigo-50', border: 'border-indigo-100', tagColor: 'text-indigo-500' },
-            { href: '/dashboard', icon: Users, title: 'HR Dashboard', description: 'Live employee directory. Track attendance and monitor your workforce in real time.', tag: 'Live', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', tagColor: 'text-emerald-500' },
-            { href: '/manage', icon: LayoutGrid, title: 'Manage Records', description: 'Create job postings and onboard employees. Every record syncs instantly to Supabase.', tag: 'Supabase', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', tagColor: 'text-violet-500' },
+            { href: '/dashboard', icon: Users, title: 'Candidate Directory', description: 'Live employee directory. Track attendance and monitor your workforce in real time.', tag: 'Live', color: 'text-emerald-600', bg: 'bg-emerald-50', border: 'border-emerald-100', tagColor: 'text-emerald-500' },
+            { href: '/manage', icon: LayoutGrid, title: 'Job & Team Records', description: 'Create job postings and onboard employees. Every record syncs instantly to Supabase.', tag: 'Supabase', color: 'text-violet-600', bg: 'bg-violet-50', border: 'border-violet-100', tagColor: 'text-violet-500' },
           ].map(({ href, icon: Icon, title, description, tag, color, bg, border, tagColor }) => (
             <Link key={href} href={href}
               className="group bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md hover:border-gray-300 transition-all duration-200 hover:-translate-y-0.5 flex flex-col">

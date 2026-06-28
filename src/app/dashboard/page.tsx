@@ -117,8 +117,8 @@ export default function DashboardPage() {
   }, [employees, search])
 
   const getStatus = (emp: Employee) => emp.attendanceLogs?.[0]?.status ?? null
-  const clockedIn = employees.filter(e => getStatus(e) === 'Clock In').length
-  const clockedOut = employees.filter(e => getStatus(e) === 'Clock Out').length
+  const clockedIn = employees.filter(e => getStatus(e) === 'Mark Active').length
+  const clockedOut = employees.filter(e => getStatus(e) === 'Mark Inactive').length
 
   const handleDelete = async (id: number, name: string) => {
     if (!confirm(`Remove ${name}?`)) return
@@ -146,7 +146,7 @@ export default function DashboardPage() {
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />Live Data
             </span>
             <h1 className="text-3xl md:text-4xl font-black text-gray-950 tracking-tight leading-none">Candidate Directory</h1>
-            <p className="text-gray-400 mt-2 text-sm">Real-time workforce overview and attendance management.</p>
+            <p className="text-gray-400 mt-2 text-sm">AI-powered candidate pipeline — track screening status and hiring progress in real time.</p>
           </div>
           <button onClick={() => fetchEmployees(true)}
             className="self-start sm:self-auto flex items-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors shadow-sm">
@@ -156,9 +156,9 @@ export default function DashboardPage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           {[
-            { label: 'Total Employees', value: employees.length, sub: 'Active headcount', color: 'text-indigo-600', border: 'border-indigo-100' },
-            { label: 'Clocked In', value: clockedIn, sub: 'Currently working', color: 'text-emerald-600', border: 'border-emerald-100' },
-            { label: 'Clocked Out', value: clockedOut, sub: 'Ended shift', color: 'text-amber-500', border: 'border-amber-100' },
+            { label: 'Total Candidates', value: employees.length, sub: 'In hiring pipeline', color: 'text-indigo-600', border: 'border-indigo-100' },
+            { label: 'Clocked In', value: clockedIn, sub: 'Currently active', color: 'text-emerald-600', border: 'border-emerald-100' },
+            { label: 'Clocked Out', value: clockedOut, sub: 'Marked inactive', color: 'text-amber-500', border: 'border-amber-100' },
           ].map(({ label, value, sub, color, border }) => (
             <div key={label} className={`bg-white rounded-2xl border ${border} p-5 shadow-sm`}>
               <p className="text-xs font-bold text-gray-400 mb-2">{label}</p>
@@ -171,7 +171,7 @@ export default function DashboardPage() {
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden shadow-sm">
           <div className="px-5 md:px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
-              <h2 className="text-sm font-black text-gray-900">Employee Directory</h2>
+              <h2 className="text-sm font-black text-gray-900">Pipeline Directory</h2>
               <p className="text-[10px] text-gray-400 mt-0.5">{employees.length} total record{employees.length !== 1 ? 's' : ''}</p>
             </div>
             <div className="relative w-full sm:w-56">
@@ -228,8 +228,8 @@ export default function DashboardPage() {
                         <td className="px-6 py-4">
                           {status ? (
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
-                              ${status === 'Clock In' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${status === 'Clock In' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                              ${status === 'Mark Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
+                              <span className={`w-1.5 h-1.5 rounded-full ${status === 'Mark Active' ? 'bg-emerald-400' : 'bg-amber-400'}`} />
                               {status}
                             </span>
                           ) : <span className="text-xs text-gray-300 font-semibold">No record</span>}
@@ -240,9 +240,9 @@ export default function DashboardPage() {
                               <>
                                 <button onClick={() => setEditingEmployee(emp)} title="Edit"
                                   className="p-2 rounded-lg text-gray-300 hover:bg-indigo-50 hover:text-indigo-600 transition-all"><Pencil className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => handleAttendance(emp.id, 'Clock In', name)} title="Clock In"
+                                <button onClick={() => handleAttendance(emp.id, 'Mark Active', name)} title="Mark Active"
                                   className="p-2 rounded-lg text-gray-300 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><LogIn className="w-3.5 h-3.5" /></button>
-                                <button onClick={() => handleAttendance(emp.id, 'Clock Out', name)} title="Clock Out"
+                                <button onClick={() => handleAttendance(emp.id, 'Mark Inactive', name)} title="Mark Inactive"
                                   className="p-2 rounded-lg text-gray-300 hover:bg-amber-50 hover:text-amber-600 transition-all"><LogOut className="w-3.5 h-3.5" /></button>
                                 <button onClick={() => handleDelete(emp.id, name)} title="Delete"
                                   className="p-2 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>

@@ -1,13 +1,15 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { Upload, FileText, Briefcase, CheckCircle, AlertCircle, Lightbulb, Loader2, RotateCcw, ChevronDown, MessageSquare, Brain, Target } from 'lucide-react'
+import { Upload, FileText, Briefcase, CheckCircle, AlertCircle, Lightbulb, Loader2, RotateCcw, ChevronDown, MessageSquare, Brain, Target, TrendingUp } from 'lucide-react'
 import { toast } from 'sonner'
 
 interface Job { id: number; title: string; description: string }
 interface AnalysisResult { score: number; summary: string; strengths: string[]; weaknesses: string[]; suggestions: string[] }
-interface InterviewQuestion { type: string; question: string; purpose: string }
-interface InterviewResult { questions: InterviewQuestion[] }
+interface ScoringCriteria { '1-2': string; '3-4': string; '5-6': string; '7-8': string; '9-10': string }
+interface InterviewQuestion { type: string; question: string; purpose: string; scoring: ScoringCriteria }
+interface HiringRecommendation { verdict: string; reason: string; watchPoints: string[] }
+interface InterviewResult { questions: InterviewQuestion[]; hiringRecommendation: HiringRecommendation }
 
 function ScoreRing({ score }: { score: number }) {
   const [display, setDisplay] = useState(0)
@@ -62,32 +64,149 @@ function Skeleton() {
   )
 }
 
-function InterviewPanel({ questions }: { questions: InterviewQuestion[] }) {
+function ScoreBadge({ range, description, selected }: { range: string; description: string; selected?: boolean }) {
+  const colors: Record<string, string> = {
+    '1-2': 'bg-red-50 border-red-100 text-red-600',
+    '3-4': 'bg-orange-50 border-orange-100 text-orange-600',
+    '5-6': 'bg-amber-50 border-amber-100 text-amber-600',
+    '7-8': 'bg-blue-50 border-blue-100 text-blue-600',
+    '9-10': 'bg-emerald-50 border-emerald-100 text-emerald-600',
+  }
+  return (
+    <div className={`p-2.5 rounded-lg border text-[10px] leading-relaxed ${colors[range] || 'bg-gray-50 border-gray-100 text-gray-600'}`}>
+      <span className="font-black">{range}:</span> {description}
+    </div>
+  )
+}
+
+function InterviewPanel({ questions, recommendation }: { questions: InterviewQuestion[]; recommendation: HiringRecommendation }) {
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null)
+  const [scores, setScores] = useState<Record<number, number>>({})
+
   const typeColors: Record<string, string> = {
     Technical: 'bg-indigo-50 text-indigo-700 border-indigo-100',
     Behavioral: 'bg-violet-50 text-violet-700 border-violet-100',
     Situational: 'bg-amber-50 text-amber-700 border-amber-100',
   }
 
+  const verdictColors: Record<string, string> = {
+    'Strong Hire': 'bg-emerald-50 border-emerald-200 text-emerald-800',
+    'Hire': 'bg-blue-50 border-blue-200 text-blue-800',
+    'Maybe': 'bg-amber-50 border-amber-200 text-amber-800',
+    'No Hire': 'bg-red-50 border-red-200 text-red-800',
+  }
+
+  const totalScore = Object.values(scores).reduce((a, b) => a + b, 0)
+  const maxScore = questions.length * 10
+  const interviewPercent = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0
+  const scoredCount = Object.keys(scores).length
+
   return (
-    <div className="space-y-3 animate-fade-in">
-      <div className="flex items-center gap-2 mb-4">
-        <Brain className="w-4 h-4 text-indigo-500" />
-        <p className="text-sm font-black text-gray-900">AI-Generated Interview Questions</p>
+    <div className="space-y-4 animate-fade-in">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Brain className="w-4 h-4 text-indigo-500" />
+          <p className="text-sm font-black text-gray-900">AI Interview Questions</p>
+        </div>
+        {scoredCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-indigo-50 border border-indigo-100">
+            <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+            <span className="text-xs font-black text-indigo-700">{totalScore}/{maxScore} pts ({interviewPercent}%)</span>
+          </div>
+        )}
       </div>
+
+      {/* Hiring Recommendation */}
+      <div className={`p-4 rounded-2xl border ${verdictColors[recommendation.verdict] || 'bg-gray-50 border-gray-200 text-gray-800'}`}>
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-70">AI Hiring Recommendation</p>
+          <span className="text-sm font-black">{recommendation.verdict}</span>
+        </div>
+        <p className="text-xs leading-relaxed mb-3">{recommendation.reason}</p>
+        {recommendation.watchPoints.length > 0 && (
+          <div>
+            <p className="text-[9px] font-black uppercase tracking-widest opacity-60 mb-1.5">Watch Points</p>
+            <ul className="space-y-1">
+              {recommendation.watchPoints.map((w, i) => (
+                <li key={i} className="text-[10px] flex items-start gap-1.5 opacity-80">
+                  <span className="mt-0.5 shrink-0">⚠</span>{w}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+
+      {/* Interview score summary */}
+      {scoredCount > 0 && (
+        <div className="p-4 rounded-xl bg-slate-50 border border-gray-100">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Interview Progress</p>
+            <p className="text-[10px] font-bold text-gray-500">{scoredCount} of {questions.length} scored</p>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="h-2 rounded-full bg-indigo-500 transition-all duration-500"
+              style={{ width: `${(scoredCount / questions.length) * 100}%` }} />
+          </div>
+          {scoredCount === questions.length && (
+            <p className="text-xs font-bold text-indigo-600 mt-2 text-center">
+              ✦ Interview complete — Overall score: {interviewPercent}%
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Questions */}
       {questions.map((q, i) => (
-        <div key={i} className="bg-white rounded-xl border border-gray-100 p-4 shadow-sm">
-          <div className="flex items-start justify-between gap-3 mb-2">
-            <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${typeColors[q.type] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>
-              {q.type}
-            </span>
-            <span className="text-[9px] text-gray-300 font-medium shrink-0">Q{i + 1}</span>
+        <div key={i} className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+          <div className="p-4 cursor-pointer" onClick={() => setExpandedIndex(expandedIndex === i ? null : i)}>
+            <div className="flex items-start justify-between gap-3 mb-2">
+              <div className="flex items-center gap-2">
+                <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${typeColors[q.type] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>
+                  {q.type}
+                </span>
+                <span className="text-[9px] text-gray-300 font-bold">Q{i + 1}</span>
+              </div>
+              {scores[i] !== undefined && (
+                <span className="text-xs font-black text-indigo-600 shrink-0">{scores[i]}/10</span>
+              )}
+            </div>
+            <p className="text-sm font-semibold text-gray-800 leading-relaxed">{q.question}</p>
+            <div className="flex items-start gap-1.5 mt-2">
+              <Target className="w-3 h-3 text-gray-300 shrink-0 mt-0.5" />
+              <p className="text-[10px] text-gray-400 leading-relaxed">{q.purpose}</p>
+            </div>
           </div>
-          <p className="text-sm font-semibold text-gray-800 mb-2 leading-relaxed">{q.question}</p>
-          <div className="flex items-start gap-1.5">
-            <Target className="w-3 h-3 text-gray-300 shrink-0 mt-0.5" />
-            <p className="text-[10px] text-gray-400 leading-relaxed">{q.purpose}</p>
-          </div>
+
+          {expandedIndex === i && (
+            <div className="px-4 pb-4 border-t border-gray-50 pt-3 space-y-3">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Scoring Guide (1-10)</p>
+              <div className="grid grid-cols-1 gap-2">
+                {Object.entries(q.scoring).map(([range, desc]) => (
+                  <ScoreBadge key={range} range={range} description={desc} />
+                ))}
+              </div>
+
+              <div>
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Rate This Answer</p>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button key={n} onClick={() => setScores(prev => ({ ...prev, [i]: n }))}
+                      className={`w-8 h-8 rounded-lg text-xs font-black transition-all border
+                        ${scores[i] === n
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-md'
+                          : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600'
+                        }`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+                {scores[i] !== undefined && (
+                  <p className="text-[10px] text-indigo-500 font-bold mt-1.5">Scored: {scores[i]}/10</p>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -160,7 +279,7 @@ export default function AnalysisPage() {
       const data = await res.json()
       if (!res.ok) throw new Error(data.error)
       setInterviewResult(data)
-      toast.success('8 interview questions generated')
+      toast.success('8 interview questions generated with scoring guide')
     } catch (e: any) { toast.error(e.message || 'Failed to generate questions') }
     finally { setIsGeneratingQuestions(false) }
   }
@@ -173,7 +292,7 @@ export default function AnalysisPage() {
             <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />Groq · Llama 3.3
           </span>
           <h1 className="text-3xl md:text-4xl font-black text-gray-950 tracking-tight leading-none">Candidate Intelligence</h1>
-          <p className="text-gray-400 mt-2 text-sm">Upload any PDF resume — get instant AI scoring and tailored interview questions.</p>
+          <p className="text-gray-400 mt-2 text-sm">Upload any PDF resume — get instant AI scoring and tailored interview questions with scoring guide.</p>
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-[400px_1fr] gap-5">
@@ -297,7 +416,7 @@ export default function AnalysisPage() {
                   ))}
                 </div>
                 <div className="p-4 rounded-xl bg-violet-50 border border-violet-100 text-center">
-                  <p className="text-xs text-violet-600 font-semibold">✦ Click "Generate Interview Questions" to get 8 AI-tailored questions based on this candidate</p>
+                  <p className="text-xs text-violet-600 font-semibold">✦ Click "Generate Interview Questions" to get 8 AI-tailored questions with scoring guide</p>
                 </div>
               </div>
             )}
@@ -311,12 +430,12 @@ export default function AnalysisPage() {
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 mb-4">
                       <Loader2 className="w-4 h-4 text-violet-500 animate-spin" />
-                      <p className="text-sm font-semibold text-gray-500">Generating tailored interview questions...</p>
+                      <p className="text-sm font-semibold text-gray-500">Generating tailored questions with scoring criteria...</p>
                     </div>
                     {[1,2,3,4].map(i => <div key={i} className="h-24 rounded-xl skeleton" />)}
                   </div>
                 ) : interviewResult ? (
-                  <InterviewPanel questions={interviewResult.questions} />
+                  <InterviewPanel questions={interviewResult.questions} recommendation={interviewResult.hiringRecommendation} />
                 ) : null}
               </div>
             )}

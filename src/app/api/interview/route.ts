@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
     const prompt = `You are an expert technical interviewer and talent acquisition specialist.
 
-Based on the following candidate information, generate exactly 8 targeted interview questions.
+Based on the following candidate information, generate exactly 8 targeted interview questions with scoring guidance.
 
 Job Title: ${jobTitle}
 Job Description: ${jobDescription}
@@ -24,31 +24,42 @@ Candidate Weaknesses identified: ${weaknesses?.join(', ')}
 Resume Summary:
 ${resumeText.substring(0, 2000)}
 
-Generate 8 interview questions that:
-1. Probe specifically into the candidate's identified weaknesses
-2. Verify the skills claimed in their resume
-3. Are relevant to the job requirements
-4. Mix behavioral, technical, and situational questions
+Generate 8 interview questions. For each question include:
+- The question itself
+- The type (Technical, Behavioral, or Situational)
+- The purpose (what this reveals about the candidate)
+- Scoring criteria for scores 1-2 (Poor), 3-4 (Below Average), 5-6 (Average), 7-8 (Good), 9-10 (Excellent)
+
+Also provide an overall hiring recommendation based on the ATS score and interview performance.
 
 Return ONLY a valid JSON object, no markdown, no backticks:
 {
   "questions": [
-    { "type": "Technical", "question": "...", "purpose": "one sentence on what this reveals about the candidate" },
-    { "type": "Behavioral", "question": "...", "purpose": "..." },
-    { "type": "Situational", "question": "...", "purpose": "..." },
-    { "type": "Technical", "question": "...", "purpose": "..." },
-    { "type": "Behavioral", "question": "...", "purpose": "..." },
-    { "type": "Technical", "question": "...", "purpose": "..." },
-    { "type": "Situational", "question": "...", "purpose": "..." },
-    { "type": "Behavioral", "question": "...", "purpose": "..." }
-  ]
+    {
+      "type": "Technical",
+      "question": "...",
+      "purpose": "one sentence on what this reveals",
+      "scoring": {
+        "1-2": "what a poor answer looks like",
+        "3-4": "what a below average answer looks like",
+        "5-6": "what an average answer looks like",
+        "7-8": "what a good answer looks like",
+        "9-10": "what an excellent answer looks like"
+      }
+    }
+  ],
+  "hiringRecommendation": {
+    "verdict": "Strong Hire / Hire / Maybe / No Hire",
+    "reason": "2-3 sentence explanation based on the candidate profile",
+    "watchPoints": ["thing to watch for 1", "thing to watch for 2"]
+  }
 }`
 
     const completion = await groq.chat.completions.create({
       messages: [{ role: 'user', content: prompt }],
       model: 'llama-3.3-70b-versatile',
       temperature: 0.4,
-      max_tokens: 2000,
+      max_tokens: 3000,
     })
 
     const text = completion.choices[0]?.message?.content?.trim() ?? ''
