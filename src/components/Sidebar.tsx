@@ -3,11 +3,13 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileSearch, Users, LayoutGrid, Home, Menu, X, Sparkles } from 'lucide-react'
+import { FileSearch, Users, LayoutGrid, Home, Menu, X, Sparkles, Briefcase, UserCheck } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
+  { href: '/jobs', label: 'Job Listings', icon: Briefcase },
   { href: '/analysis', label: 'Candidate Intelligence', icon: FileSearch },
+  { href: '/recruiter', label: 'Applications', icon: UserCheck },
   { href: '/dashboard', label: 'Pipeline Directory', icon: Users },
   { href: '/manage', label: 'Manage Records', icon: LayoutGrid },
 ]
@@ -61,7 +63,7 @@ export default function Sidebar() {
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-3 mb-2">Menu</p>
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href
+            const isActive = pathname === href || pathname.startsWith(href + '/')  && href !== '/'
             return (
               <Link key={href} href={href}
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150
@@ -78,14 +80,14 @@ export default function Sidebar() {
             <div className="w-2 h-2 rounded-full bg-green-400 shrink-0 mt-0.5 animate-pulse" />
             <div>
               <p className="text-xs font-bold text-gray-700 leading-none">All systems online</p>
-              <p className="text-[10px] text-gray-400 mt-0.5">Supabase · Groq Llama 3.3</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Supabase · Groq · Resend</p>
             </div>
           </div>
         </div>
       </aside>
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-100 flex">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {navItems.slice(0, 5).map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href
           return (
             <Link key={href} href={href}
