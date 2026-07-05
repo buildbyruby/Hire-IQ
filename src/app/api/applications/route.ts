@@ -35,7 +35,7 @@ Job Title: ${job.title}
 Job Description: ${job.description}
 
 Resume Text:
-${resumeText}
+${resumeText.substring(0, 3000)}
 
 Return ONLY this exact JSON structure:
 {
@@ -59,13 +59,9 @@ Return ONLY this exact JSON structure:
 
     const application = await prisma.application.create({
       data: {
-        firstName,
-        lastName,
-        email,
+        firstName, lastName, email,
         phone: phone || null,
-        resumeText,
-        fileName,
-        jobId,
+        resumeText, fileName, jobId,
         aiScore: ai.score,
         aiSummary: ai.summary,
         aiStrengths: JSON.stringify(ai.strengths),
@@ -78,6 +74,6 @@ Return ONLY this exact JSON structure:
     return NextResponse.json({ success: true, applicationId: application.id, score: ai.score })
   } catch (error: any) {
     console.error('Application error:', error)
-    return NextResponse.json({ error: 'Failed to submit application: ' + error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to submit: ' + error.message }, { status: 500 })
   }
 }

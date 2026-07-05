@@ -6,10 +6,17 @@ import { toast } from 'sonner'
 import { useRouter } from 'next/navigation'
 
 interface Candidate {
-  id: number; firstName: string; lastName: string; email: string; phone: string | null
-  createdAt: string; source: 'manual' | 'recruited'
+  id: number
+  firstName: string
+  lastName: string
+  email: string
+  phone: string | null
+  createdAt: string
+  source: 'manual' | 'recruited'
   attendanceLogs?: { status: string; timestamp: string }[]
-  jobTitle?: string; aiScore?: number; status?: string
+  jobTitle?: string
+  aiScore?: number
+  applicationStatus?: string
 }
 
 function SkeletonRow() {
@@ -34,14 +41,22 @@ function EditModal({ candidate, onClose, onSaved }: { candidate: Candidate; onCl
     if (!firstName.trim() || !lastName.trim() || !email.trim()) return
     setSaving(true)
     try {
-      const res = await fetch(`/api/employees/${candidate.id}`, {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ firstName, lastName, email, phone }),
+      const endpoint = candidate.source === 'manual'
+        ? `/api/employees/${candidate.id}`
+        : `/api/applications/${candidate.id}`
+      const res = await fetch(endpoint, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(
+          candidate.source === 'manual'
+            ? { firstName, lastName, email, phone }
+            : { status: candidate.applicationStatus }
+        ),
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      toast.success('Candidate updated'); onSaved(); onClose()
-    } catch (e: any) { toast.error(e.message || 'Update failed') }
+      if (!res.ok) throw new Error('Update failed')
+      toast.success('Candidate updated')
+      onSaved(); onClose()
+    } catch (e: any) { toast.error(e.message) }
     finally { setSaving(false) }
   }
 
@@ -54,19 +69,28 @@ function EditModal({ candidate, onClose, onSaved }: { candidate: Candidate; onCl
           <h2 className="text-sm font-black text-gray-900">Edit Candidate</h2>
           <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400"><X className="w-4 h-4" /></button>
         </div>
-        <div className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">First Name</label><input value={firstName} onChange={e => setFirstName(e.target.value)} className={input} /></div>
-            <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Last Name</label><input value={lastName} onChange={e => setLastName(e.target.value)} className={input} /></div>
+        {candidate.source === 'recruited' ? (
+          <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 mb-4">
+            <p className="text-xs font-bold text-indigo-600 mb-1">Recruited Candidate</p>
+            <p className="text-xs text-gray-500">To edit personal details for recruited candidates, visit their full profile in Applications.</p>
           </div>
-          <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={input} /></div>
-          <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Phone</label><input type="tel" placeholder="+254 700 000 000" value={phone} onChange={e => setPhone(e.target.value)} className={input} /></div>
-        </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">First Name</label><input value={firstName} onChange={e => setFirstName(e.target.value)} className={input} /></div>
+              <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Last Name</label><input value={lastName} onChange={e => setLastName(e.target.value)} className={input} /></div>
+            </div>
+            <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className={input} /></div>
+            <div><label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1.5">Phone</label><input type="tel" placeholder="+254 700 000 000" value={phone} onChange={e => setPhone(e.target.value)} className={input} /></div>
+          </div>
+        )}
         <div className="flex gap-2 mt-5">
           <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-600 hover:bg-gray-50 transition-colors">Cancel</button>
-          <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
-            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Save
-          </button>
+          {candidate.source === 'manual' && (
+            <button onClick={handleSave} disabled={saving} className="flex-1 py-2.5 rounded-xl bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}Save
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -101,15 +125,16 @@ export default function PipelinePage() {
   useEffect(() => { fetchAll() }, [])
 
   const allCandidates: Candidate[] = useMemo(() => {
-    const manual: Candidate[] = manualCandidates.map(e => ({
-      id: e.id, firstName: e.firstName, lastName: e.lastName, email: e.email,
-      phone: e.phone, createdAt: e.createdAt, source: 'manual',
-      attendanceLogs: e.attendanceLogs,
-    }))
     const recruited: Candidate[] = recruitedApplicants.map(a => ({
-      id: a.id, firstName: a.firstName, lastName: a.lastName, email: a.email,
-      phone: a.phone, createdAt: a.createdAt, source: 'recruited',
-      jobTitle: a.job?.title, aiScore: a.aiScore, status: 'recruited',
+      id: a.id, firstName: a.firstName, lastName: a.lastName,
+      email: a.email, phone: a.phone, createdAt: a.createdAt,
+      source: 'recruited', jobTitle: a.job?.title,
+      aiScore: a.aiScore, applicationStatus: a.status,
+    }))
+    const manual: Candidate[] = manualCandidates.map(e => ({
+      id: e.id, firstName: e.firstName, lastName: e.lastName,
+      email: e.email, phone: e.phone, createdAt: e.createdAt,
+      source: 'manual', attendanceLogs: e.attendanceLogs,
     }))
     return [...recruited, ...manual]
   }, [manualCandidates, recruitedApplicants])
@@ -117,7 +142,10 @@ export default function PipelinePage() {
   const filtered = useMemo(() => {
     if (!search.trim()) return allCandidates
     const q = search.toLowerCase()
-    return allCandidates.filter(c => `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) || c.email.toLowerCase().includes(q))
+    return allCandidates.filter(c =>
+      `${c.firstName} ${c.lastName}`.toLowerCase().includes(q) ||
+      c.email.toLowerCase().includes(q)
+    )
   }, [allCandidates, search])
 
   const getManualStatus = (c: Candidate) => c.attendanceLogs?.[0]?.status ?? null
@@ -130,6 +158,9 @@ export default function PipelinePage() {
       if (c.source === 'manual') {
         await fetch(`/api/employees/${c.id}`, { method: 'DELETE' })
         setManualCandidates(p => p.filter(e => e.id !== c.id))
+      } else {
+        await fetch(`/api/applications/${c.id}`, { method: 'DELETE' })
+        setRecruitedApplicants(p => p.filter(a => a.id !== c.id))
       }
       toast.success(`${name} removed`)
     } catch { toast.error('Failed') }
@@ -141,8 +172,13 @@ export default function PipelinePage() {
     const key = `${c.source}-${c.id}`
     setActionId(key)
     try {
-      await fetch(`/api/employees/${c.id}/attendance`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) })
-      await fetchAll(true); toast.success(`${name} — ${status}`)
+      await fetch(`/api/employees/${c.id}/attendance`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status })
+      })
+      await fetchAll(true)
+      toast.success(`${name} — ${status}`)
     } catch { toast.error('Failed') }
     finally { setActionId(null) }
   }
@@ -168,7 +204,7 @@ export default function PipelinePage() {
           {[
             { label: 'Total Candidates', value: allCandidates.length, sub: 'In pipeline', color: 'text-indigo-600', border: 'border-indigo-100' },
             { label: 'Recruited', value: recruitedApplicants.length, sub: 'Via job applications', color: 'text-emerald-600', border: 'border-emerald-100' },
-            { label: 'Manual Entries', value: manualCandidates.length, sub: 'Added manually', color: 'text-violet-600', border: 'border-violet-100' },
+            { label: 'Manual Entries', value: manualCandidates.length, sub: 'Added directly', color: 'text-violet-600', border: 'border-violet-100' },
           ].map(({ label, value, sub, color, border }) => (
             <div key={label} className={`bg-white rounded-2xl border ${border} p-5 shadow-sm`}>
               <p className="text-xs font-bold text-gray-400 mb-2">{label}</p>
@@ -182,7 +218,7 @@ export default function PipelinePage() {
           <div className="px-5 md:px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-black text-gray-900">Pipeline Directory</h2>
-              <p className="text-[10px] text-gray-400 mt-0.5">{allCandidates.length} total candidate{allCandidates.length !== 1 ? 's' : ''}</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">{allCandidates.length} total</p>
             </div>
             <div className="relative w-full sm:w-56">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300 pointer-events-none" />
@@ -207,7 +243,7 @@ export default function PipelinePage() {
                   <tr className="border-b border-gray-100 bg-slate-50">
                     <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
                     <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest hidden md:table-cell">Contact</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Source / Status</th>
+                    <th className="px-6 py-3 text-left text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                     <th className="px-6 py-3 text-right text-[10px] font-black text-gray-400 uppercase tracking-widest">Actions</th>
                   </tr>
                 </thead>
@@ -228,7 +264,7 @@ export default function PipelinePage() {
                             <div>
                               <span className="text-sm font-bold text-gray-900 block">{name}</span>
                               {c.source === 'recruited' && c.aiScore !== undefined && (
-                                <span className="text-[9px] font-black text-emerald-600">AI Score: {c.aiScore}/100</span>
+                                <span className="text-[9px] font-black text-emerald-600">AI Score: {c.aiScore}/100 · {c.jobTitle}</span>
                               )}
                             </div>
                           </div>
@@ -239,12 +275,9 @@ export default function PipelinePage() {
                         </td>
                         <td className="px-6 py-4">
                           {c.source === 'recruited' ? (
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                ✅ Recruited
-                              </span>
-                              {c.jobTitle && <p className="text-[10px] text-gray-400">{c.jobTitle}</p>}
-                            </div>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
+                              ✅ Recruited
+                            </span>
                           ) : manualStatus ? (
                             <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider
                               ${manualStatus === 'Mark Active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-amber-50 text-amber-700 border border-amber-100'}`}>
@@ -260,8 +293,8 @@ export default function PipelinePage() {
                             {busy ? <Loader2 className="w-4 h-4 text-gray-300 animate-spin" /> : (
                               <>
                                 {c.source === 'recruited' ? (
-                                  <button onClick={() => router.push(`/recruiter/${c.id}`)} title="View Full Profile"
-                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-all">
+                                  <button onClick={() => router.push(`/recruiter/${c.id}`)}
+                                    className="px-2.5 py-1.5 rounded-lg text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 transition-all mr-1">
                                     View Profile
                                   </button>
                                 ) : (
@@ -272,10 +305,10 @@ export default function PipelinePage() {
                                       className="p-2 rounded-lg text-gray-300 hover:bg-emerald-50 hover:text-emerald-600 transition-all"><UserCheck className="w-3.5 h-3.5" /></button>
                                     <button onClick={() => handleStatus(c, 'Mark Inactive', name)} title="Mark Inactive"
                                       className="p-2 rounded-lg text-gray-300 hover:bg-amber-50 hover:text-amber-600 transition-all"><UserX className="w-3.5 h-3.5" /></button>
-                                    <button onClick={() => handleDelete(c, name)} title="Remove"
-                                      className="p-2 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                                   </>
                                 )}
+                                <button onClick={() => handleDelete(c, name)} title="Remove"
+                                  className="p-2 rounded-lg text-gray-300 hover:bg-red-50 hover:text-red-500 transition-all"><Trash2 className="w-3.5 h-3.5" /></button>
                               </>
                             )}
                           </div>
@@ -290,8 +323,12 @@ export default function PipelinePage() {
         </div>
       </div>
 
-      {editingCandidate && editingCandidate.source === 'manual' && (
-        <EditModal candidate={editingCandidate} onClose={() => setEditingCandidate(null)} onSaved={() => fetchAll(true)} />
+      {editingCandidate && (
+        <EditModal
+          candidate={editingCandidate}
+          onClose={() => setEditingCandidate(null)}
+          onSaved={() => fetchAll(true)}
+        />
       )}
     </div>
   )
