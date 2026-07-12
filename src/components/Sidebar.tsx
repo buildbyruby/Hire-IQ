@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { FileSearch, Users, LayoutGrid, Home, Menu, X, Sparkles, Briefcase, UserCheck } from 'lucide-react'
+import { FileSearch, Users, LayoutGrid, Home, Menu, X, Sparkles, Briefcase, UserCheck, BarChart3 } from 'lucide-react'
 
 const navItems = [
   { href: '/', label: 'Home', icon: Home },
@@ -12,6 +12,7 @@ const navItems = [
   { href: '/recruiter', label: 'Applications', icon: UserCheck },
   { href: '/dashboard', label: 'Pipeline Directory', icon: Users },
   { href: '/manage', label: 'Manage Records', icon: LayoutGrid },
+  { href: '/report', label: 'Report', icon: BarChart3 },
 ]
 
 export default function Sidebar() {
@@ -63,7 +64,7 @@ export default function Sidebar() {
         <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
           <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest px-3 mb-2">Menu</p>
           {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href || pathname.startsWith(href + '/')  && href !== '/'
+            const isActive = pathname === href
             return (
               <Link key={href} href={href}
                 className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-150

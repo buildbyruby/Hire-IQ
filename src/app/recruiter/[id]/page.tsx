@@ -181,6 +181,44 @@ function InterviewPanel({ questions, recommendation }: { questions: InterviewQue
   )
 }
 
+
+function SendInterviewLinkButton({ applicationId, candidateEmail, isRecruited }: { applicationId: number; candidateEmail: string; isRecruited: boolean }) {
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+
+  const handleSend = async () => {
+    if (!isRecruited) { toast.error('Candidate must be recruited first before sending interview link'); return }
+    setSending(true)
+    try {
+      const res = await fetch('/api/interview-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setSent(true)
+      toast.success(`Interview link sent to ${candidateEmail} — expires in 24 hours`)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to send link')
+    } finally { setSending(false) }
+  }
+
+  if (sent) return (
+    <div className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-emerald-50 border border-emerald-100 text-xs font-black text-emerald-700">
+      <CheckCircle className="w-3.5 h-3.5" />Link Sent
+    </div>
+  )
+
+  return (
+    <button onClick={handleSend} disabled={sending || !isRecruited}
+      className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-black hover:bg-indigo-100 disabled:opacity-40 transition-colors">
+      {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
+      Send Interview Link
+    </button>
+  )
+}
+
 export default function CandidateProfilePage() {
   const params = useParams()
   const router = useRouter()
@@ -391,15 +429,18 @@ export default function CandidateProfilePage() {
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
                 <Brain className="w-3.5 h-3.5" />Interview Questions
               </p>
-              <p className="text-xs text-gray-400">Generate 8 AI-tailored questions based on this candidate's weaknesses with a 1-10 scoring guide.</p>
+              <p className="text-xs text-gray-400">Generate questions here for reference, or send a timed interview link directly to the candidate.</p>
             </div>
-            {!showInterview && (
-              <button onClick={handleGenerateQuestions} disabled={generatingQuestions}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-xs font-black hover:bg-violet-700 disabled:opacity-40 transition-colors shrink-0 ml-4">
-                {generatingQuestions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
-                Generate Questions
-              </button>
-            )}
+            <div className="flex gap-2 shrink-0 ml-4">
+              {!showInterview && (
+                <button onClick={handleGenerateQuestions} disabled={generatingQuestions}
+                  className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-violet-600 text-white text-xs font-black hover:bg-violet-700 disabled:opacity-40 transition-colors">
+                  {generatingQuestions ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageSquare className="w-3.5 h-3.5" />}
+                  Generate
+                </button>
+              )}
+              <SendInterviewLinkButton applicationId={application.id} candidateEmail={application.email} isRecruited={application.status === 'recruited'} />
+            </div>
             {showInterview && interviewResult && (
               <button onClick={() => { setShowInterview(false); setInterviewResult(null) }}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-400 hover:bg-gray-50 transition-colors shrink-0 ml-4">

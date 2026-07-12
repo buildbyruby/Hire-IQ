@@ -48,7 +48,21 @@ model Application {
   aiWeaknesses    String
   aiSuggestions   String
   status          String   @default("pending")
+  interviewSessions InterviewSession[]
   jobId           Int
   job             Job      @relation(fields: [jobId], references: [id])
   createdAt       DateTime @default(now())
+}
+
+model InterviewSession {
+  id          String   @id @default(cuid())
+  token       String   @unique @default(cuid())
+  applicationId Int
+  application Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  questions   String
+  answers     String?
+  aiScores    String?
+  completed   Boolean  @default(false)
+  expiresAt   DateTime
+  createdAt   DateTime @default(now())
 }

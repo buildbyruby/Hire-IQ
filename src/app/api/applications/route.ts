@@ -7,7 +7,10 @@ const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 export async function GET() {
   try {
     const applications = await prisma.application.findMany({
-      include: { job: true },
+      include: {
+        job: true,
+        interviewSessions: true
+      },
       orderBy: { createdAt: 'desc' }
     })
     return NextResponse.json(applications)
@@ -29,7 +32,7 @@ export async function POST(request: NextRequest) {
     if (!job) return NextResponse.json({ error: 'Job not found' }, { status: 404 })
 
     const prompt = `You are an expert HR Analyst and ATS specialist.
-Analyze the resume against the job description and return ONLY a valid JSON object with no markdown, no backticks, no extra text.
+Analyze the resume against the job description and return ONLY valid JSON, no markdown.
 
 Job Title: ${job.title}
 Job Description: ${job.description}
@@ -37,7 +40,7 @@ Job Description: ${job.description}
 Resume Text:
 ${resumeText.substring(0, 3000)}
 
-Return ONLY this exact JSON structure:
+Return ONLY:
 {
   "score": <number 0-100>,
   "summary": "<2-3 sentence candidate summary>",
@@ -74,6 +77,6 @@ Return ONLY this exact JSON structure:
     return NextResponse.json({ success: true, applicationId: application.id, score: ai.score })
   } catch (error: any) {
     console.error('Application error:', error)
-    return NextResponse.json({ error: 'Failed to submit: ' + error.message }, { status: 500 })
+    return NextResponse.json({ error: 'Failed: ' + error.message }, { status: 500 })
   }
 }
