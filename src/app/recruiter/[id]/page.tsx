@@ -21,6 +21,16 @@ interface Application {
   resumeText: string
   createdAt: string
   job: { id: number; title: string; description: string }
+  interviewSessions: CompletedSession[]
+}
+
+interface CompletedSession {
+  id: string
+  questions: string
+  answers: string | null
+  aiScores: string | null
+  completed: boolean
+  createdAt: string
 }
 
 interface InterviewQuestion {
@@ -219,6 +229,76 @@ function SendInterviewLinkButton({ applicationId, candidateEmail, isRecruited }:
   )
 }
 
+function CompletedInterviewResults({ session }: { session: CompletedSession }) {
+  let questions: InterviewQuestion[] = []
+  let answers: string[] = []
+  let scoring: { scores?: { questionId: number; score: number; feedback: string }[]; overallScore?: number; recommendation?: string } = {}
+
+  try { questions = JSON.parse(session.questions) } catch { questions = [] }
+  try { answers = session.answers ? JSON.parse(session.answers) : [] } catch { answers = [] }
+  try { scoring = session.aiScores ? JSON.parse(session.aiScores) : {} } catch { scoring = {} }
+
+  const typeColors: Record<string, string> = {
+    Technical: 'bg-indigo-50 text-indigo-700 border-indigo-100',
+    Behavioral: 'bg-violet-50 text-violet-700 border-violet-100',
+    Situational: 'bg-amber-50 text-amber-700 border-amber-100',
+  }
+
+  return (
+    <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm mb-5">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
+            <MessageSquare className="w-3.5 h-3.5" />Actual Interview Results
+          </p>
+          <p className="text-xs text-gray-400">What the candidate actually answered when they completed the interview link.</p>
+        </div>
+        {typeof scoring.overallScore === 'number' && (
+          <div className="text-center shrink-0 ml-4">
+            <p className="text-2xl font-black text-indigo-600 tabular-nums">{scoring.overallScore}/10</p>
+            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-wider">Overall Score</p>
+          </div>
+        )}
+      </div>
+
+      {scoring.recommendation && (
+        <div className="p-4 rounded-xl bg-indigo-50 border border-indigo-100 mb-4">
+          <p className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">AI Assessment</p>
+          <p className="text-xs text-gray-700 leading-relaxed">{scoring.recommendation}</p>
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {questions.map((q, i) => {
+          const scoreEntry = scoring.scores?.find(s => s.questionId === i + 1) || scoring.scores?.[i]
+          return (
+            <div key={i} className="rounded-xl border border-gray-100 p-4">
+              <div className="flex items-start justify-between gap-3 mb-2">
+                <div className="flex items-center gap-2">
+                  <span className={`inline-flex px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${typeColors[q.type] || 'bg-gray-50 text-gray-600 border-gray-100'}`}>{q.type}</span>
+                  <span className="text-[9px] text-gray-300 font-bold">Q{i + 1}</span>
+                </div>
+                {scoreEntry && <span className="text-xs font-black text-indigo-600 shrink-0">{scoreEntry.score}/10</span>}
+              </div>
+              <p className="text-sm font-semibold text-gray-800 leading-relaxed mb-2">{q.question}</p>
+              <div className="p-3 rounded-lg bg-slate-50 border border-gray-100">
+                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Candidate's Answer</p>
+                <p className="text-xs text-gray-700 leading-relaxed whitespace-pre-wrap">{answers[i] || 'No answer provided'}</p>
+              </div>
+              {scoreEntry?.feedback && (
+                <p className="text-[10px] text-indigo-500 font-semibold mt-2">✦ {scoreEntry.feedback}</p>
+              )}
+            </div>
+          )
+        })}
+        {questions.length === 0 && (
+          <p className="text-xs text-gray-300 font-semibold">No question data recorded for this interview.</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function CandidateProfilePage() {
   const params = useParams()
   const router = useRouter()
@@ -304,6 +384,9 @@ export default function CandidateProfilePage() {
   const isPending = application.status === 'pending'
   const isRecruited = application.status === 'recruited'
   const isRejected = application.status === 'rejected'
+  const completedSession = Array.isArray(application.interviewSessions)
+    ? application.interviewSessions.find(s => s.completed)
+    : undefined
 
   return (
     <div className="min-h-screen bg-slate-50 p-5 md:p-8 lg:p-10">
@@ -423,11 +506,13 @@ export default function CandidateProfilePage() {
           </div>
         </div>
 
+        {completedSession && <CompletedInterviewResults session={completedSession} />}
+
         <div className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest flex items-center gap-1.5 mb-1">
-                <Brain className="w-3.5 h-3.5" />Interview Questions
+                <Brain className="w-3.5 h-3.5" />Interview Questions (Reference Tool)
               </p>
               <p className="text-xs text-gray-400">Generate questions here for reference, or send a timed interview link directly to the candidate.</p>
             </div>
