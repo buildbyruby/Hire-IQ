@@ -26,7 +26,30 @@ export async function PATCH(
     })
 
     if (status === 'recruited') {
-      const weaknesses = JSON.parse(application.aiWeaknesses)
+      let weaknesses: string[] = []
+      try {
+        weaknesses = JSON.parse(application.aiWeaknesses)
+      } catch {
+        weaknesses = []
+      }
+
+      const existingSession = await prisma.interviewSession.findFirst({
+        where: {
+          applicationId,
+          completed: false,
+          expiresAt: { gt: new Date() },
+        },
+      })
+
+      if (existingSession) {
+        return NextResponse.json({
+          success: true,
+          status: application.status,
+          note: 'Active interview session already exists — reused instead of creating a duplicate.',
+          token: existingSession.token,
+        })
+      }
+
 
       const prompt = `You are an expert interviewer. Generate exactly 5 interview questions.
 Job Title: ${application.job.title}
@@ -68,18 +91,34 @@ Return ONLY valid JSON, no markdown:
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://hire-iq-self.vercel.app'
       const interviewUrl = `${appUrl}/interview/${session.token}`
 
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: application.email,
         subject: `🎉 Congratulations! You have been shortlisted — ${application.job.title}`,
         html: recruitedEmail(application.firstName, application.job.title, interviewUrl),
       })
 
+      if (!emailResult.success) {
+        return NextResponse.json({
+          success: true,
+          status: application.status,
+          emailWarning: 'Status updated but email failed to send: ' + emailResult.error,
+        })
+      }
+
     } else if (status === 'rejected') {
-      await sendEmail({
+      const emailResult = await sendEmail({
         to: application.email,
         subject: `Update on your application — ${application.job.title}`,
         html: rejectedEmail(application.firstName, application.job.title),
       })
+
+      if (!emailResult.success) {
+        return NextResponse.json({
+          success: true,
+          status: application.status,
+          emailWarning: 'Status updated but email failed to send: ' + emailResult.error,
+        })
+      }
     }
 
     return NextResponse.json({ success: true, status: application.status })

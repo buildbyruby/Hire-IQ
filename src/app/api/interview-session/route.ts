@@ -16,7 +16,30 @@ export async function POST(request: NextRequest) {
     })
     if (!application) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-    const weaknesses = JSON.parse(application.aiWeaknesses)
+    let weaknesses: string[] = []
+    try {
+      weaknesses = JSON.parse(application.aiWeaknesses)
+    } catch {
+      weaknesses = []
+    }
+
+    const existingSession = await prisma.interviewSession.findFirst({
+      where: {
+        applicationId,
+        completed: false,
+        expiresAt: { gt: new Date() },
+      },
+    })
+
+    if (existingSession) {
+      return NextResponse.json({
+        success: true,
+        token: existingSession.token,
+        expiresAt: existingSession.expiresAt,
+        note: 'Active interview session already exists — reused instead of creating a duplicate.',
+      })
+    }
+
 
     const prompt = `You are an expert interviewer.
 Generate exactly 5 interview questions for this candidate.
